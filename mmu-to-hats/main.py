@@ -107,7 +107,7 @@ def main(argv=None):
         .add_margin(margin_threshold=10.0, is_default=True)
     )
 
-    with Client(n_workers=1, threads_per_worker=1) as client:
+    with Client(n_workers=8, threads_per_worker=1) as client:
         print(f"Dask dashboard: {client.dashboard_link}")
         pipeline_with_client(import_args, client)
 
