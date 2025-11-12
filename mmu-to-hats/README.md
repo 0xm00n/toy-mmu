@@ -24,3 +24,5 @@ uvx --from huggingface-hub hf upload-large-folder \
   --repo-type=dataset --num-workers=16 \
   LSDB/mmu_sdss_sdss ./hats/mmu_sdss_sdss
 ```
+
+Here is an example of the result dataset: https://huggingface.co/datasets/LSDB/mmu_sdss_sdss/tree/main
