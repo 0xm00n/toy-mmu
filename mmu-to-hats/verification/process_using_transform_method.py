@@ -46,9 +46,9 @@ with UPath(input_file).open("rb") as fh, h5py.File(fh) as h5_file:
     read_columns = list(h5_file)
     n_rows = h5_file[read_columns[0]].shape[0]
     data = {
-        col: np_to_pyarrow_array(h5_file[col])
+        col: np_to_pyarrow_array(h5_file[col][:])
         for col in read_columns
     }
     table = pa.table(data)
     table_transformed = transform_sdss(table)
-    table_transformed.to_parquet('data/transformed_table.parquet')
+    pq.write_table(table_transformed,'data/transformed_table.parquet' )
