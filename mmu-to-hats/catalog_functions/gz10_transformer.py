@@ -1,9 +1,10 @@
 """
 GZ10Transformer: Clean class-based transformation from HDF5 to PyArrow tables.
 """
+
 import pyarrow as pa
 import numpy as np
-from catalog_functions.base_transformer import BaseTransformer
+from catalog_functions.utils import BaseTransformer
 
 
 class GZ10Transformer(BaseTransformer):
@@ -56,9 +57,7 @@ class GZ10Transformer(BaseTransformer):
             columns[f] = pa.array(data[f][:].astype(np.float32))
 
         # 3. Add object_id
-        columns["object_id"] = pa.array(
-            [str(oid) for oid in data["object_id"][:]]
-        )
+        columns["object_id"] = pa.array([str(oid) for oid in data["object_id"][:]])
 
         # Create table with schema
         schema = self.create_schema()

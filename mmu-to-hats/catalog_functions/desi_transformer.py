@@ -1,19 +1,17 @@
 """
 DESITransformer: Clean class-based transformation from HDF5 to PyArrow tables.
 """
+
 import pyarrow as pa
 import numpy as np
-from catalog_functions.utils import np_to_pyarrow_array
-from catalog_functions.base_transformer import BaseTransformer
+from catalog_functions.utils import np_to_pyarrow_array, BaseTransformer
 
 
 class DESITransformer(BaseTransformer):
     """Transforms DESI HDF5 files to PyArrow tables with proper schema."""
 
     # Feature group definitions from desi.py
-    BOOL_FEATURES = [
-        "ZWARN"
-    ]
+    BOOL_FEATURES = ["ZWARN"]
 
     FLOAT_FEATURES = [
         "Z",
@@ -33,23 +31,34 @@ class DESITransformer(BaseTransformer):
         "FIBERTOTFLUX_Z",
     ]
 
+    DOUBLE_FEATURES = [
+        "ra",
+        "dec",
+    ]
+
     def create_schema(self):
         """Create the output PyArrow schema."""
         fields = []
 
         # Spectrum struct with nested arrays
-        spectrum_struct = pa.struct([
-            pa.field("flux", pa.list_(pa.float32())),
-            pa.field("ivar", pa.list_(pa.float32())),
-            pa.field("lsf_sigma", pa.list_(pa.float32())),
-            pa.field("lambda", pa.list_(pa.float32())),
-            pa.field("mask", pa.list_(pa.bool_())),
-        ])
+        spectrum_struct = pa.struct(
+            [
+                pa.field("flux", pa.list_(pa.float32())),
+                pa.field("ivar", pa.list_(pa.float32())),
+                pa.field("lsf_sigma", pa.list_(pa.float32())),
+                pa.field("lambda", pa.list_(pa.float32())),
+                pa.field("mask", pa.list_(pa.bool_())),
+            ]
+        )
         fields.append(pa.field("spectrum", spectrum_struct))
 
         # Add all float features
         for f in self.FLOAT_FEATURES:
             fields.append(pa.field(f, pa.float32()))
+
+        # Add all double features
+        for f in self.DOUBLE_FEATURES:
+            fields.append(pa.field(f, pa.float64()))
 
         # Add all boolean features
         for f in self.BOOL_FEATURES:
@@ -89,22 +98,23 @@ class DESITransformer(BaseTransformer):
         ]
 
         columns["spectrum"] = pa.StructArray.from_arrays(
-            spectrum_arrays,
-            names=["flux", "ivar", "lsf_sigma", "lambda", "mask"]
+            spectrum_arrays, names=["flux", "ivar", "lsf_sigma", "lambda", "mask"]
         )
 
         # 2. Add float features
         for f in self.FLOAT_FEATURES:
             columns[f] = pa.array(data[f][:].astype(np.float32))
 
-        # 3. Add boolean features
+        # 3. Add double features
+        for f in self.DOUBLE_FEATURES:
+            columns[f] = pa.array(data[f][:].astype(np.float64))
+
+        # 4. Add boolean features
         for f in self.BOOL_FEATURES:
             columns[f] = pa.array(data[f][:].astype(bool))
 
-        # 4. Add object_id
-        columns["object_id"] = pa.array(
-            [str(oid) for oid in data["object_id"][:]]
-        )
+        # 5. Add object_id
+        columns["object_id"] = pa.array([str(oid) for oid in data["object_id"][:]])
 
         # Create table with schema
         schema = self.create_schema()

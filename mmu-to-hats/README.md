@@ -4,6 +4,7 @@
 
 ```shell
 uv run python ./main.py \
+  --transformer=sdss \
   --input=https://users.flatironinstitute.org/~polymathic/data/MultimodalUniverse/v1/sdss/sdss/ \
   --output=./hats \
   --name=mmu_sdss_sdss \
@@ -41,6 +42,9 @@ Note that we need to return a `pyarrow.Table` with exactly the same output as th
  - catalog_functions/sdss_transformer.py
  - verification/download_sdss.sh
  - process_sdss_using_datasets.py
+
+Please note, that most of the classes are vibe-coded, and not verified yet.
+The only verified transformation class is SDSS.
 
 # Verification of a transformation class
 There is an example implemenation for sdss. For data generation do:
