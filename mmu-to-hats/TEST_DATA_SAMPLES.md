@@ -21,9 +21,10 @@ https://users.flatironinstitute.org/~polymathic/data/MultimodalUniverse/v1/
 - Status: ✓ Verified accessible
 
 **DESI**
-- healpix=0
-- URL: https://users.flatironinstitute.org/~polymathic/data/MultimodalUniverse/v1/desi/edr_sv3/healpix=0/
+- healpix=626
+- URL: https://users.flatironinstitute.org/~polymathic/data/MultimodalUniverse/v1/desi/edr_sv3/healpix=626/
 - Status: ✓ Verified accessible
+- Notes: needed to transform the object_id to int, since the catalog stores them as integers, see the function `match_desi_catalog_object_ids`!
 
 **VIPERS**
 - healpix=0
