@@ -5,6 +5,7 @@ DESITransformer: Clean class-based transformation from HDF5 to PyArrow tables.
 import pyarrow as pa
 import numpy as np
 from catalog_functions.utils import np_to_pyarrow_array, BaseTransformer
+import pyarrow.compute as pc
 
 
 class DESITransformer(BaseTransformer):
@@ -111,7 +112,7 @@ class DESITransformer(BaseTransformer):
 
         # 4. Add boolean features
         for f in self.BOOL_FEATURES:
-            columns[f] = pa.array(data[f][:].astype(bool))
+            columns[f] = pc.invert(pa.array(data[f][:].astype(bool)))
 
         # 5. Add object_id
         columns["object_id"] = pa.array([str(oid) for oid in data["object_id"][:]])
