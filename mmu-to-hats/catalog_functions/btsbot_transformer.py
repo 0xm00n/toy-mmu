@@ -114,16 +114,11 @@ class BTSbotTransformer(BaseTransformer):
         """Create the output PyArrow schema."""
         fields = []
 
-        # Image sequence with band, view, array, scale
-        image_struct = pa.struct(
-            [
-                pa.field("band", pa.string()),
-                pa.field("view", pa.string()),
-                pa.field("array", pa.list_(pa.list_(pa.float32()))),  # 2D array
-                pa.field("scale", pa.float32()),
-            ]
-        )
-        fields.append(pa.field("image", pa.list_(image_struct)))
+        # Image data as separate columns (lists since each object has 3 views)
+        fields.append(pa.field("band", pa.list_(pa.string())))
+        fields.append(pa.field("view", pa.list_(pa.string())))
+        fields.append(pa.field("array", pa.list_(pa.list_(pa.list_(pa.float32())))))  # list of 2D arrays
+        fields.append(pa.field("scale", pa.list_(pa.float32())))
 
         # Add all float features
         for f in self.FLOAT_FEATURES:
@@ -163,42 +158,18 @@ class BTSbotTransformer(BaseTransformer):
         # 1. Create image sequence column
         # image_triplet shape: [n_objects, 63, 63, 3] for 3 views
         image_triplet = data["image_triplet"][:]
-        band_data = data["band"][:]
+        band_data = np.char.decode(data["band"][:], encoding="utf-8") if isinstance(data["band"][0], bytes) else data["band"][:]
         scale_data = data["image_scale"][:]
 
-        image_lists = []
-        for i in range(n_objects):
-            images_for_object = []
-            for j, view in enumerate(self.VIEWS):
-                img_array = image_triplet[i, :, :, j]
-                # Convert 2D array to list of lists
-                img_list = [row.tolist() for row in img_array]
+        band_arrays = [[band_data[i] for i in range(len(self.VIEWS))] for _ in range(n_objects)]
+        view_arrays = [self.VIEWS for _ in range(n_objects)]
+        array_arrays = [[[row.tolist() for row in image_triplet[i, :, :, j]] for j in range(3)] for i in range(n_objects)]
+        scale_arrays = [[float(scale_data[i]) for _j in range(3)] for i in range(n_objects) ]
 
-                band = band_data[i]
-                if isinstance(band, bytes):
-                    band = band.decode("utf-8")
-
-                images_for_object.append(
-                    {
-                        "band": band,
-                        "view": view,
-                        "array": img_list,
-                        "scale": float(scale_data[i]),
-                    }
-                )
-            image_lists.append(images_for_object)
-
-        # Create image column as list of structs
-        # Define the struct type for each image
-        image_struct_type = pa.struct([
-            pa.field("band", pa.string()),
-            pa.field("view", pa.string()),
-            pa.field("array", pa.list_(pa.list_(pa.float32()))),
-            pa.field("scale", pa.float32()),
-        ])
-
-        # Convert image_lists to PyArrow array with correct type
-        columns["image"] = pa.array(image_lists, type=pa.list_(image_struct_type))
+        columns["band"] = pa.array(band_arrays, type=pa.list_(pa.string()))
+        columns["view"] = pa.array(view_arrays, type=pa.list_(pa.string()))
+        columns["array"] = pa.array(array_arrays, type=pa.list_(pa.list_(pa.list_(pa.float32()))))
+        columns["scale"] = pa.array(scale_arrays, type=pa.list_(pa.float32()))
 
         # 2. Add float features
         for f in self.FLOAT_FEATURES:
