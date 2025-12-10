@@ -188,29 +188,17 @@ class BTSbotTransformer(BaseTransformer):
                 )
             image_lists.append(images_for_object)
 
-        # Create struct arrays for images
-        band_arrays = []
-        view_arrays = []
-        array_arrays = []
-        scale_arrays = []
+        # Create image column as list of structs
+        # Define the struct type for each image
+        image_struct_type = pa.struct([
+            pa.field("band", pa.string()),
+            pa.field("view", pa.string()),
+            pa.field("array", pa.list_(pa.list_(pa.float32()))),
+            pa.field("scale", pa.float32()),
+        ])
 
-        for obj_images in image_lists:
-            band_arrays.append([img["band"] for img in obj_images])
-            view_arrays.append([img["view"] for img in obj_images])
-            array_arrays.append([img["array"] for img in obj_images])
-            scale_arrays.append([img["scale"] for img in obj_images])
-
-        image_structs = pa.StructArray.from_arrays(
-            [
-                pa.array(band_arrays, type=pa.list_(pa.string())),
-                pa.array(view_arrays, type=pa.list_(pa.string())),
-                pa.array(array_arrays, type=pa.list_(pa.list_(pa.list_(pa.float32())))),
-                pa.array(scale_arrays, type=pa.list_(pa.float32())),
-            ],
-            names=["band", "view", "array", "scale"],
-        )
-
-        columns["image"] = image_structs
+        # Convert image_lists to PyArrow array with correct type
+        columns["image"] = pa.array(image_lists, type=pa.list_(image_struct_type))
 
         # 2. Add float features
         for f in self.FLOAT_FEATURES:

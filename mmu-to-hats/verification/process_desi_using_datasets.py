@@ -13,7 +13,12 @@ desi_catalog = get_catalog(desi)
 
 
 def match_desi_catalog_object_ids(example, catalog):
-    example_obj_id = example["object_id"].strip("b'")
+    if isinstance(example["object_id"], int):
+        example_obj_id = example["object_id"]
+    elif isinstance(example["object_id"], str):
+        example_obj_id = example["object_id"].strip("b'")
+    else:
+        raise ValueError("Unexpected type for object_id")
     catalog_entry = catalog[catalog["object_id"] == int(example_obj_id)]
     assert len(catalog_entry) == 1
     return {

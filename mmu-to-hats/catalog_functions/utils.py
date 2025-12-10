@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Union
+from typing import Union, List
 
 import h5py
 import numpy as np
@@ -38,9 +38,28 @@ class BaseTransformer(ABC):
         """Transform HDF5 data (dict of arrays or h5py.File) to PyArrow table."""
         pass
 
-    def transform_from_hdf5(
-        self, hdf5_file_path: Union[str, Path, "UPath"]
-    ) -> pa.Table:
-        """Transform HDF5 file to PyArrow table."""
+    def transform_from_hdf5_file(self, hdf5_file_path: Union[str, Path, "UPath"]):
         with h5py.File(hdf5_file_path, "r") as data:
             return self.dataset_to_table(data)
+
+    def _check_if_directory(self, path: Union[str, Path, "UPath"]) -> bool:
+        p = UPath(path)
+        return p.is_dir()
+
+    def transform_from_hdf5(
+        self, hdf5_file_path: List[Union[str, Path, "UPath"]] | Union[str, Path, "UPath"]
+    ) -> pa.Table:
+        """Transform HDF5 file to PyArrow table."""
+        if self._check_if_directory(hdf5_file_path):
+            # list all files in the dir
+            hdf5_file_path = list(UPath(hdf5_file_path).glob("*.hdf5"))
+        if isinstance(hdf5_file_path, (str, Path, UPath)):
+            return self.transform_from_hdf5_file(hdf5_file_path)
+        elif isinstance(hdf5_file_path, list):
+            tables = []
+            for file_path in hdf5_file_path:
+                table = self.transform_from_hdf5_file(file_path)
+                tables.append(table)
+            return pa.concat_tables(tables)
+        else:
+            raise ValueError("Invalid type for hdf5_file_path:", type(hdf5_file_path))
