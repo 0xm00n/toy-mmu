@@ -29,18 +29,17 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Cache dependencies
-        id: cache-deps
+      - name: Cache virtual environment
+        id: cache-venv
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/uv
-            ~/.local/lib/python3.13/site-packages
-          key: ${{ runner.os }}-deps-${{ hashFiles('mmu-to-hats/pyproject.toml', 'mmu-to-hats/uv.lock') }}
-      - name: Install dependencies
-        if: steps.cache-deps.outputs.cache-hit != 'true'
+          path: mmu-to-hats/.venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('mmu-to-hats/pyproject.toml', 'mmu-to-hats/uv.lock') }}
+      - name: Install uv and create venv
+        if: steps.cache-venv.outputs.cache-hit != 'true'
         run: |
-          cd mmu-to-hats && python -m pip install --upgrade uv && uv pip install --system '.'
+          python -m pip install --upgrade uv
+          cd mmu-to-hats && uv venv .venv && uv pip install '.'
 
   check_transformations:
     needs: setup
@@ -57,13 +56,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - name: Restore dependencies
+      - name: Restore virtual environment
         uses: actions/cache@v4
         with:
-          path: |
-            ~/.cache/uv
-            ~/.local/lib/python3.13/site-packages
-          key: ${{ runner.os }}-deps-${{ hashFiles('mmu-to-hats/pyproject.toml', 'mmu-to-hats/uv.lock') }}
+          path: mmu-to-hats/.venv
+          key: ${{ runner.os }}-venv-${{ hashFiles('mmu-to-hats/pyproject.toml', 'mmu-to-hats/uv.lock') }}
       - name: Run transformation test for ${{ matrix.catalog }}
         run: |
-          cd mmu-to-hats && python verify.py ${{ matrix.catalog }}
+          cd mmu-to-hats && source .venv/bin/activate && python verify.py ${{ matrix.catalog }}
